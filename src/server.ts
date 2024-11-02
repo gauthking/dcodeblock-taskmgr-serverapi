@@ -5,21 +5,36 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import taskRoutes from "./routes/taskRoutes";
+import * as dotenv from "dotenv";
 
-require("dotenv").config()
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:3000",
+        methods: ["GET", "POST", "PUT"],
+        credentials: true,
+    },
+});
 
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST", "PUT"],
+    credentials: true,
+}));
 app.use(bodyParser.json());
-app.use("/tasks", taskRoutes);
+
+app.use("/tasks", taskRoutes(io));  // Pass io instance to routes
 
 const mongoURI = process.env.MONGODB_URL;
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true } as any)
+mongoose.connect(mongoURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+} as any);
 
-
+// Listen for socket connections
 io.on("connection", (socket) => {
     console.log("New client connected");
 
@@ -28,27 +43,7 @@ io.on("connection", (socket) => {
     });
 });
 
-// Handle task creation and updates with real-time notifications
-app.post("/tasks", (req, res) => {
-    const task = req.body;
-    io.emit("task_created", task); // Notify all clients about the new task
-    res.status(201).json(task);
-});
-
-app.put("/tasks/:id", (req, res) => {
-    const task = req.body;
-    io.emit("task_updated", { ...task, id: req.params.id }); // Notify clients about the updated task
-    res.status(200).json(task);
-});
-
-app.delete("/tasks/:id", (req, res) => {
-    const taskId = req.params.id;
-    io.emit("task_deleted", taskId); // Notify clients about the deleted task
-    res.status(204).send();
-});
-
-// Start server
-const PORT = process.env.PORT || 5000;
+const PORT = 8001;
 server.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
