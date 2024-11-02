@@ -16,7 +16,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use("/tasks", taskRoutes);
 
-const mongoURI = "your_mongo_connection_string";
+const mongoURI = process.env.MONGODB_URL;
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true } as any)
 
 
